@@ -981,3 +981,13 @@ TEST_F(Any, DeducedArrayType) {
     ASSERT_EQ(any.type(), entt::type_id<const char *>());
     ASSERT_EQ((strcmp("another array of char", entt::any_cast<const char *>(any))), 0);
 }
+
+#include <tuple>
+template<auto... I>
+auto gen(std::index_sequence<I...>) {
+    return std::make_tuple(entt::any{std::integral_constant<std::size_t, I>{}}...);
+}
+
+TEST_F(Any, FooBar) {
+    gen(std::make_index_sequence<60>{});
+}
