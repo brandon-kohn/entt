@@ -395,7 +395,7 @@ public:
     template<typename Type>
     [[nodiscard]] const Type * try_cast() const {
         if(node) {
-            if(const auto info = type_id<Type>(); node->info == info) {
+            if(const auto info = type_id<std::remove_const_t<std::remove_reference_t<Type>>>(); node->info == info) {
                 return any_cast<Type>(&storage);
             } else if(const auto *base = internal::meta_visit<&internal::meta_type_node::base>([info](const auto *curr) { return curr->type()->info == info; }, node); base) {
                 return static_cast<const Type *>(base->cast(storage.data()));
@@ -409,7 +409,7 @@ public:
     template<typename Type>
     [[nodiscard]] Type * try_cast() {
         if(node) {
-            if(const auto info = type_id<Type>(); node->info == info) {
+            if(const auto info = type_id<std::remove_const_t<std::remove_reference_t<Type>>>(); node->info == info) {
                 return any_cast<Type>(&storage);
             } else if(const auto *base = internal::meta_visit<&internal::meta_type_node::base>([info](const auto *curr) { return curr->type()->info == info; }, node); base) {
                 return static_cast<Type *>(const_cast<constness_as_t<void, Type> *>(base->cast(static_cast<constness_as_t<any, Type> &>(storage).data())));
@@ -457,7 +457,7 @@ public:
         if(try_cast<std::remove_reference_t<Type>>() != nullptr) {
             return as_ref();
         } else if(node) {
-            if(const auto * const conv = internal::meta_visit<&internal::meta_type_node::conv>([info = type_id<Type>()](const auto *curr) { return curr->type()->info == info; }, node); conv) {
+            if(const auto * const conv = internal::meta_visit<&internal::meta_type_node::conv>([info = type_id<std::remove_const_t<std::remove_reference_t<Type>>>()](const auto *curr) { return curr->type()->info == info; }, node); conv) {
                 return conv->conv(storage.data());
             }
         }
@@ -476,7 +476,7 @@ public:
         if(try_cast<std::remove_reference_t<const Type>>() != nullptr) {
             return true;
         } else if(node) {
-            if(const auto * const conv = internal::meta_visit<&internal::meta_type_node::conv>([info = type_id<Type>()](const auto *curr) { return curr->type()->info == info; }, node); conv) {
+            if(const auto * const conv = internal::meta_visit<&internal::meta_type_node::conv>([info = type_id<std::remove_const_t<std::remove_reference_t<Type>>>()](const auto *curr) { return curr->type()->info == info; }, node); conv) {
                 *this = conv->conv(std::as_const(storage).data());
                 return true;
             }

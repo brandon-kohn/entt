@@ -404,7 +404,7 @@ Type any_cast(basic_any<Len, Align> &&data) ENTT_NOEXCEPT {
 /*! @copydoc any_cast */
 template<typename Type, std::size_t Len, std::size_t Align>
 const Type * any_cast(const basic_any<Len, Align> *data) ENTT_NOEXCEPT {
-    return (data->type() == type_id<Type>() ? static_cast<const Type *>(data->data()) : nullptr);
+    return (data->type() == type_id<std::remove_const_t<std::remove_reference_t<Type>>>() ? static_cast<const Type *>(data->data()) : nullptr);
 }
 
 
@@ -412,7 +412,7 @@ const Type * any_cast(const basic_any<Len, Align> *data) ENTT_NOEXCEPT {
 template<typename Type, std::size_t Len, std::size_t Align>
 Type * any_cast(basic_any<Len, Align> *data) ENTT_NOEXCEPT {
     // last attempt to make wrappers for const references return their values
-    return (data->type() == type_id<Type>() ? static_cast<Type *>(static_cast<constness_as_t<basic_any<Len, Align>, Type> *>(data)->data()) : nullptr);
+    return (data->type() == type_id<std::remove_const_t<std::remove_reference_t<Type>>>() ? static_cast<Type *>(static_cast<constness_as_t<basic_any<Len, Align>, Type> *>(data)->data()) : nullptr);
 }
 
 
