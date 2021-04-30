@@ -45,6 +45,8 @@ class basic_any {
 
     template<typename Type>
     static const void * basic_vtable([[maybe_unused]] const operation op, [[maybe_unused]] const basic_any &from, [[maybe_unused]] void *to) {
+        static_assert(std::is_same_v<std::remove_const_t<std::remove_reference_t<Type>>, Type>);
+
         if constexpr(std::is_void_v<Type>) {
             switch(op) {
             case operation::REF:
@@ -336,6 +338,10 @@ public:
         ref.vtable = vtable;
         vtable(operation::CREF, *this, &ref);
         return ref;
+    }
+
+    [[nodiscard]] bool owned() const ENTT_NOEXCEPT {
+        return status == mode::DYN || status == mode::IN_SITU;
     }
 
 private:

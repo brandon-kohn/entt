@@ -162,22 +162,28 @@ class meta_any {
 
     template<typename Type>
     static void basic_vtable(const operation op, [[maybe_unused]] const any &from, [[maybe_unused]] void *to) {
+        static_assert(std::is_same_v<std::remove_const_t<std::remove_reference_t<Type>>, Type>);
+
         if constexpr(!std::is_void_v<Type>) {
             switch(op) {
             case operation::DTOR:
-                if constexpr(!std::is_lvalue_reference_v<Type>) {
-                    if(auto *curr = static_cast<internal::meta_type_node *>(to); curr->dtor) {
-                        curr->dtor(const_cast<any &>(from).data());
-                    }
+                if(auto *curr = static_cast<internal::meta_type_node *>(to); from.owned() && curr->dtor) {
+                    curr->dtor(const_cast<any &>(from).data());
                 }
             break;
             case operation::REF:
+                if(auto *ptr = any_cast<Type>(&const_cast<any &>(from)); ptr) {
+                    *static_cast<meta_any *>(to) = meta_any{std::ref(*ptr)};
+                } else {
+                    *static_cast<meta_any *>(to) = meta_any{std::cref(any_cast<const std::decay_t<Type> &>(from))};
+                }
+                break;
             case operation::CREF:
-                *static_cast<meta_any *>(to) = (op == operation::REF ? meta_any{std::ref(any_cast<Type &>(const_cast<any &>(from)))} : meta_any{std::cref(any_cast<const std::decay_t<Type> &>(from))});
+                *static_cast<meta_any *>(to) = meta_any{std::cref(any_cast<const std::decay_t<Type> &>(from))};
                 break;
             case operation::DEREF:
             case operation::CDEREF:
-                if constexpr(is_meta_pointer_like_v<std::remove_const_t<std::remove_reference_t<Type>>>) {
+                if constexpr(is_meta_pointer_like_v<Type>) {
                     using element_type = std::remove_const_t<typename std::pointer_traits<std::decay_t<Type>>::element_type>;
 
                     if constexpr(std::is_function_v<element_type>) {
@@ -228,7 +234,7 @@ public:
     explicit meta_any(std::in_place_type_t<Type>, Args &&... args)
         : storage{std::in_place_type<Type>, std::forward<Args>(args)...},
           node{internal::meta_info<Type>::resolve()},
-          vtable{&basic_vtable<Type>}
+          vtable{&basic_vtable<std::remove_const_t<std::remove_reference_t<Type>>>}
     {}
 
     /**
@@ -487,7 +493,7 @@ public:
      */
     template<typename Type, typename... Args>
     void emplace(Args &&... args) {
-        std::exchange(vtable, &basic_vtable<Type>)(operation::DTOR, storage, node);
+        std::exchange(vtable, &basic_vtable<std::remove_const_t<std::remove_reference_t<Type>>>)(operation::DTOR, storage, node);
         storage.emplace<Type>(std::forward<Args>(args)...);
         node = internal::meta_info<Type>::resolve();
     }
